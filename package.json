@@ -1,0 +1,11 @@
+{
+    "name": "phpug-game",
+    "version": "0.0.1",
+    "author": "Petri Koivula <petri.koivula@fraktio.fi>",
+    "description": "Greatest game for PHPUG",
+    "contributors": [
+    ],
+    "dependencies": {
+        "socket.io": "0.9.x"
+    }
+}
