@@ -6,7 +6,7 @@ set :stages, %w[production]
 set :default_stage, 'production'
 
 set :application, "PHPUG-Game"
-set :node_file, "server.js"
+set :node_file, "server.coffee"
 set :repository, "git@github.com:fraktio/phpug-game.git"
 
 set :scm, :git
@@ -44,7 +44,7 @@ namespace :deploy do
       export NODE_ENV="#{node_env}"
 
       cd #{current_path}
-      exec sudo -u #{admin_runner} sh -c "NODE_ENV=#{node_env} #{node_path}/node #{current_path}/#{node_file} #{application_port} >> #{shared_path}/log/#{node_env}.log 2>&1"
+      exec sudo -u #{admin_runner} sh -c "NODE_ENV=#{node_env} #{node_path}/node #{current_path}/node_modules/coffee-script/bin/coffee #{current_path}/#{node_file} #{application_port} >> #{shared_path}/log/#{node_env}.log 2>&1"
   end script
   respawn
 UPSTART
