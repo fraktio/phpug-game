@@ -135,6 +135,13 @@ io.sockets.on 'connection', (socket) ->
         if players[socket.id].pushPoints
           players[socket.id].pushPoints = false
           socket.emit 'points', players[socket.id].points
+          if players[socket.id].points > 21
+            socket.emit 'location', 'http://herpderp.fi/winner'
+            console.log 'a winner was found'
+            setTimeout ->
+              process.exit 0
+            , 10000
+
     else
         players[socket.id] = {wantPos: data, pos: data, collisions: 0, speed: 50, image: playerPictures.pop(), points: 0, pushPoints: false}
         console.log 'sending image'

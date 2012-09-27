@@ -20,6 +20,8 @@ socket = io.connect()
             image.src = data
         socket.on 'points', (data) ->
           points = data
+        socket.on 'location', (data) ->
+          window.location = data
         setInterval ->
             ctx.clearRect 0, 0, c.width, c.height
             imageScale = c.width / image.width
