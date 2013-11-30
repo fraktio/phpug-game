@@ -21,9 +21,8 @@ playerPictures = []
 
 obstacleImages = []
 [
-  'resources/obstacle/cigarette.png',
-  'resources/obstacle/patents.png',
-  'resources/obstacle/stevebill.png'
+  'assets/scifi/images/obstacle/meteor1.svg',
+  'assets/scifi/images/obstacle/meteor2.svg'
 ].forEach (file) ->
   fs.readFile file, (err, data) ->
     process.exit(1) if err?
@@ -43,11 +42,10 @@ server = http.createServer (req, res) ->
   res.writeHead 200, {'Content-Type': 'text/html'}
   fs.readFile 'client.coffee', (err, data) ->
     if err? then return res.end 'reading client script failed'
-    res.end '<html><head><style>body{margin:0;}</style><meta name="viewport" content="user-scalable=no, width=device-width" /><script src="/socket.io/socket.io.js"></script>' +
+    res.end '<html><head><script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script><link href="http://assets.phpug.tunk.io/scifi/css/styles.css" media="all" rel="stylesheet" type="text/css"><meta name="viewport" content="user-scalable=no, width=device-width" /><script src="/socket.io/socket.io.js"></script>' +
       '<script src="http://coffeescript.org/extras/coffee-script.js"></script>' +
-      '<script type="text/coffeescript">' + data + '</script></head><body></body></html>'
+      '<script type="text/coffeescript">' + data + '</script></head><body><div id="background"></div><div id="midground"></div><div id="foreground"></div><div id="canvas-container"></div></div></body></html>'
 server.listen port
-
 io = (require 'socket.io').listen server
 
 io.configure 'production', ->

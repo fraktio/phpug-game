@@ -1,0 +1,12 @@
+loadConfig({
+    "obstacles":
+    [
+        "images/obstacles/meteor1.svg",
+        "images/obstacles/meteor2.svg"
+    ],
+    "players":
+    [
+        "images/players/futurama.gif"
+    ]
+});
+
