@@ -33,6 +33,7 @@ io.configure 'production', ->
 
 program = {
     assetsUrl: "http://assets.phpug.tunk.io/scifi"
+    config: {}
     players:  {}
     obstacles:  []
     collectibles:  []
@@ -45,14 +46,15 @@ program = {
             jsonpCallback: 'loadConfig',
             success: (data) =>
                 @sockets()
-                @runServer(data)
+                @config = data
+                @runServer()
             ,
             error: (data) ->
                 console.log('failed to load data');
                 console.log(data);
           });
 
-    runServer: (assets) ->
+    runServer: () ->
         setInterval =>
             for id, player of @players
 
@@ -81,6 +83,7 @@ program = {
             for obstacle, i in @obstacles
                 obstacle.xpos -= obstacle.speed
                 delAmount = i+1 if (obstacle.xpos + 25) < 0
+                obstacle.ypos = obstacle.ypos + (obstacle.angle * obstacle.speed)
             @obstacles.splice 0, delAmount
 
 
@@ -98,33 +101,35 @@ program = {
             for collectible, i in @collectibles
                 collectible.xpos -= collectible.speed
                 delAmount = i+1 if (collectible.xpos + 25) < 0
+                collectible.ypos = collectible.ypos + (collectible.angle * collectible.speed)
             @collectibles.splice 0, delAmount
 
 
-            if Math.random() > 0.995
-                index = Math.floor(assets.obstacles.length * Math.random())
-                item = assets.obstacles[index];
+            if Math.random() > 0.995 && @obstacles.length < @config.max_obstacles
+                index = Math.floor(@config.obstacles.length * Math.random())
+                item = @config.obstacles[index];
 
                 @obstacles.push {
                     ypos: Math.random() * 100,
                     xpos: 100,
+                    angle: Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle,
                     speed: @randomizeFromTo( item.min_speed, item.max_speed ) / 100,
                     index: index
                 }
 
-            if Math.random() > 0.995
-                index = Math.floor(assets.collectibles.length * Math.random())
+            if Math.random() > 0.995 && @collectibles.length < @config.max_collectibles
+                index = Math.floor(@config.collectibles.length * Math.random())
 
-                item = assets.collectibles[index];
+                item = @config.collectibles[index];
 
                 @collectibles.push {
                     ypos: Math.random() * 100,
                     xpos: 100,
+                    angle: Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle,
                     speed: @randomizeFromTo( item.min_speed, item.max_speed ) / 100,
                     index: index
                     players: []
                 }
-
         , 20
 
 

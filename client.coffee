@@ -65,23 +65,23 @@ socket = io.connect()
         @canvas = document.getElementsByTagName('canvas')[0]
         @ctx = @canvas.getContext '2d'
 
-    drawMapCanvas: (assets) ->
+    drawMapCanvas: (config) ->
 
         document.body.querySelector('#canvas-container').innerHTML = '<canvas width="' + @windowWidth + '" height="' + @windowHeight + '" style="width: ' + @windowWidth + 'px; height: ' + @windowHeight + 'px;"></canvas>'
         @initialize()
 
         images = {}
-        images = @loadPlayerImages(assets.players)
+        images = @loadPlayerImages(config.players)
         socket.on 'players', (data) =>
             @players = data
 
         socket.on 'obstacles', (data) =>
             @obstacles = data;
-            @setImagesToData(@obstacles, assets['obstacles'])
+            @setImagesToData(@obstacles, config['obstacles'])
 
         socket.on 'collectibles', (data) =>
             @collectibles = data;
-            @setImagesToData(@collectibles, assets['collectibles'])
+            @setImagesToData(@collectibles, config['collectibles'])
 
         socket.emit 'map', {}
         setInterval =>
@@ -99,10 +99,10 @@ socket = io.connect()
                 @ctx.drawImage images[id], @canvas.width / 100 * player.xpos + 2 * Math.cos( Date.now() / 97 + i ), player.ypos / 100 * ( @canvas.height - images[id].height / 2 ) + 3 * Math.sin( Date.now() / 100 + i ), images[id].width / 2, images[id].height / 2 if images.hasOwnProperty id
 
 
-    setImagesToData: (data, asset) ->
+    setImagesToData: (data, config) ->
         for item in data
             image = new Image()
-            image.src = assetsUrl + '/' +asset[0].image
+            image.src = assetsUrl + '/' +config[item.index].image
             item.image = image
         return data
 

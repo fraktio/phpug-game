@@ -2,12 +2,16 @@ loadConfig({
     "obstacles":
     [
         {
+            max_angle: 0.5,
+            min_angle: -0.5,
             max_speed: 100,
             min_speed: 50,
             starting_position: 100,
             image: "images/obstacles/meteor1.svg"
 
         },{
+            max_angle: 0.5,
+            min_angle: -0.5,
             max_speed: 40,
             min_speed: 10,
             image: "images/obstacles/meteor2.svg"
@@ -20,11 +24,15 @@ loadConfig({
     "collectibles":
     [
         {
+            max_angle: 0.5,
+            min_angle: -0.5,
             max_speed: 20,
             min_speed: 10,
             image: "images/collectibles/fraktio.png"
         }
     ],
+    "max_obstacles": 5,
+    "max_collectibles": 5,
     "winner": "http://herpderp.fi/winner"
 });
 
