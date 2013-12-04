@@ -19,7 +19,6 @@ html { overflow-y: scroll; }
     top: 0; left: 0; right: 0; bottom: 0;
     z-index: 1;
 
-
     -webkit-animation-name: STAR-MOVE;
     -webkit-animation-duration: 200s;
     -webkit-animation-timing-function: linear;

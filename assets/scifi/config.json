@@ -1,12 +1,30 @@
 loadConfig({
     "obstacles":
     [
-        "images/obstacles/meteor1.svg",
-        "images/obstacles/meteor2.svg"
+        {
+            max_speed: 100,
+            min_speed: 50,
+            starting_position: 100,
+            image: "images/obstacles/meteor1.svg"
+
+        },{
+            max_speed: 40,
+            min_speed: 10,
+            image: "images/obstacles/meteor2.svg"
+        }
     ],
     "players":
     [
         "images/players/futurama.gif"
-    ]
+    ],
+    "collectibles":
+    [
+        {
+            max_speed: 20,
+            min_speed: 10,
+            image: "images/collectibles/fraktio.png"
+        }
+    ],
+    "winner": "http://herpderp.fi/winner"
 });
 
