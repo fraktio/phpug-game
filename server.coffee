@@ -35,8 +35,10 @@ program = {
     assetsUrl: "http://assets.phpug.tunk.io/scifi"
     config: {}
     players:  {}
-    obstacles:  []
-    collectibles:  []
+    obstacles: []
+    collectibles: []
+
+
 
     initialize: ->
         $.ajax({
@@ -56,35 +58,29 @@ program = {
 
     runServer: () ->
         setInterval =>
+
             for id, player of @players
 
-                diff = player.wantPos - player.ypos
+
+                diff = player.wantpos.Y - player.pos.Y
 
                 dPos = diff/10
-                @players[id].ypos = player.ypos + dPos
+                @players[id].pos.Y = player.pos.Y + dPos
 
                 if player.collisions < 3.5
                     for obstacle in @obstacles
-                        if Math.abs(player.ypos - (obstacle.ypos+10)) < 20 && Math.abs(player.xpos - (obstacle.xpos+10)) < 20
+                        if Math.abs(player.pos.Y - (obstacle.pos.Y+10)) < 20 && Math.abs(player.pos.X - (obstacle.pos.X+10)) < 20
                             @players[id].collisions += 0.035
 
                 for collectible in @collectibles
-                    if Math.abs(player.ypos - (collectible.ypos+10)) < 20 && Math.abs(player.xpos - (collectible.xpos+10)) < 20
+                    if Math.abs(player.pos.Y - (collectible.pos.Y+10)) < 20 && Math.abs(player.pos.X - (collectible.pos.X+10)) < 20
                       collectible.players.push id
 
-                wantXpos = 50 - 10 * player.collisions
-                diff = wantXpos - player.xpos
-                dXpos = diff/10
-                @players[id].xpos = player.xpos + dXpos
+                wantposX = 50 - 10 * player.collisions
+                diff = wantposX - player.pos.X
+                dposX = diff/10
+                @players[id].pos.X = player.pos.X + dposX
                 @players[id].collisions -= 0.02 if @players[id].collisions > 0
-
-
-            delAmount = 0
-            for obstacle, i in @obstacles
-                obstacle.xpos -= obstacle.speed
-                delAmount = i+1 if (obstacle.xpos + 25) < 0
-                obstacle.ypos = obstacle.ypos + (obstacle.angle * obstacle.speed)
-            @obstacles.splice 0, delAmount
 
 
             @collectibles = @collectibles.filter (collectible) =>
@@ -97,21 +93,18 @@ program = {
                 return false
 
 
-            delAmount = 0
-            for collectible, i in @collectibles
-                collectible.xpos -= collectible.speed
-                delAmount = i+1 if (collectible.xpos + 25) < 0
-                collectible.ypos = collectible.ypos + (collectible.angle * collectible.speed)
-            @collectibles.splice 0, delAmount
+            @moveObjects(@collectibles)
+            @moveObjects(@obstacles)
 
-
-            if Math.random() > 0.995 && @obstacles.length < @config.max_obstacles
+            if Math.random() > 0.9 && @obstacles.length < @config.max_obstacles
                 index = Math.floor(@config.obstacles.length * Math.random())
                 item = @config.obstacles[index];
 
                 @obstacles.push {
-                    ypos: Math.random() * 100,
-                    xpos: 100,
+                    radius: item.radius,
+                    pos:
+                        Y: Math.random() * 100,
+                        X: 100,
                     angle: Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle,
                     speed: @randomizeFromTo( item.min_speed, item.max_speed ) / 100,
                     index: index
@@ -123,8 +116,10 @@ program = {
                 item = @config.collectibles[index];
 
                 @collectibles.push {
-                    ypos: Math.random() * 100,
-                    xpos: 100,
+                    radius: item.radius,
+                    pos:
+                        Y: Math.random() * 100,
+                        X: 100,
                     angle: Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle,
                     speed: @randomizeFromTo( item.min_speed, item.max_speed ) / 100,
                     index: index
@@ -132,6 +127,40 @@ program = {
                 }
         , 20
 
+    moveObjects: (objects) ->
+        for object, i in objects.slice(0)
+            if (object.pos.X + 25) < 0 || (object.pos.X > 110) || (object.pos.Y > 110) || (object.pos.Y < -10)  ##out of bounds?
+                objects.splice i, 1
+            else
+                @checkCollision(object)
+                object.pos.X = object.pos.X - (Math.cos(object.angle) * object.speed)
+                object.pos.Y = object.pos.Y + (Math.sin(object.angle) * object.speed)
+
+    checkCollision: (currentObject) ->
+        for object, i in @obstacles
+            if (currentObject != object)
+                if (@circleCircleCollision(object, currentObject))
+                    @calculateCollisionEffect(object, currentObject)
+                    return
+
+    circleCircleCollision: (object1, object2) ->
+        distX = object1.pos.X - object2.pos.X
+        distY = object1.pos.Y - object2.pos.Y
+        squaredist = (distX * distX) + (distY * distY)
+        return squaredist <= (object1.radius + object1.radius) * (object1.radius + object2.radius)
+
+    calculateCollisionEffect: (object1, object2) ->
+        if(object1.pos.X < object2.pos.X )
+            frontObject = object1
+            backObject = object2
+        else
+            frontObject = object2
+            backObject = object1
+
+        frontObject.speed = frontObject.speed + backObject.speed * 0.5
+        frontObject.angle = frontObject.angle * -1
+        backObject.speed = backObject.speed * 0.5
+        backObject.angle = backObject.angle * -1
 
 
     randomizeFromTo: (from, to) ->
@@ -147,15 +176,19 @@ program = {
                 intervals.push setInterval =>
                     cleanPlayers = {}
                     for id, player of @players
-                        cleanPlayers[id] = {ypos: player.ypos, xpos: player.xpos}
+                        cleanPlayers[id] = {
+                            pos:
+                                Y: player.pos.Y,
+                                X: player.pos.X
+                        }
                     socket.emit 'players', cleanPlayers
                     socket.emit 'obstacles', @obstacles
                     socket.emit 'collectibles', @collectibles
                 , 20
 
-            socket.on 'ypos', (data) =>
+            socket.on 'pos.Y', (data) =>
                 if @players.hasOwnProperty socket.id
-                    @players[socket.id].wantYPos = data
+                    @players[socket.id].wantpos.Y = data
                     if @players[socket.id].pushPoints
                         @players[socket.id].pushPoints = false
                         socket.emit 'points', @players[socket.id].points
@@ -167,8 +200,26 @@ program = {
                             , 10000
 
                 else
-                    @players[socket.id] = {wantYPos: data, ypos: data, collisions: 0, xpos: 50, image: playerPictures.pop(), points: 0, pushPoints: false}
+
+                    playerIndex = Math.floor(@config.players.length * Math.random())
+
+                    @players[socket.id] = {
+                        wantpos:
+                            Y: data,
+                            X: 0,
+                        pos:
+                            Y: data,
+                            X: 50,
+                        collisions: 0,
+                        image:  @config.players[playerIndex].image,
+                        points: 0,
+                        pushPoints: false
+                    }
                     console.log 'sending image'
+
+
+                    console.log @players[socket.id].image
+
                     socket.emit 'image', @players[socket.id].image
                     socket.broadcast.emit 'images', @players
 

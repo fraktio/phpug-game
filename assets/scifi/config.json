@@ -2,37 +2,43 @@ loadConfig({
     "obstacles":
     [
         {
-            max_angle: 0.5,
-            min_angle: -0.5,
+            max_angle: 0.1,
+            min_angle: -0.1,
             max_speed: 100,
             min_speed: 50,
-            starting_position: 100,
+            mass: 20,
+            radius: 4,
             image: "images/obstacles/meteor1.svg"
-
         },{
-            max_angle: 0.5,
-            min_angle: -0.5,
+            max_angle: 0.1,
+            min_angle: -0.1,
             max_speed: 40,
             min_speed: 10,
+            mass: 100,
+            radius: 4,
             image: "images/obstacles/meteor2.svg"
         }
     ],
     "players":
     [
-        "images/players/futurama.gif"
+        {
+            image: "images/players/futurama.gif",
+        }
     ],
     "collectibles":
     [
         {
-            max_angle: 0.5,
-            min_angle: -0.5,
+            max_angle: 0.1,
+            min_angle: -0.1,
             max_speed: 20,
             min_speed: 10,
+            mass: 10,
+            radius: 4,
             image: "images/collectibles/fraktio.png"
         }
     ],
     "max_obstacles": 5,
-    "max_collectibles": 5,
+    "max_collectibles": 2,
     "winner": "http://herpderp.fi/winner"
 });
 
