@@ -7,6 +7,7 @@ port = parseInt process.argv[2], 10
 
 server = http.createServer (req, res) ->
     res.writeHead 200, {'Content-Type': 'text/html'}
+
     fs.readFile 'client.coffee', (err, data) ->
         if err?
             return res.end 'reading client script failed'
@@ -18,6 +19,8 @@ server = http.createServer (req, res) ->
 
 server.listen port
 io = (require 'socket.io').listen server
+
+io.set('log level', 1)
 
 io.configure 'production', ->
     io.enable 'browser client etag'
@@ -37,7 +40,6 @@ program = {
     players:  {}
     obstacles: []
     collectibles: []
-
 
 
     initialize: ->
@@ -61,26 +63,23 @@ program = {
 
             for id, player of @players
 
-
-                diff = player.wantpos.Y - player.pos.Y
-
-                dPos = diff/10
-                @players[id].pos.Y = player.pos.Y + dPos
-
-                if player.collisions < 3.5
-                    for obstacle in @obstacles
-                        if Math.abs(player.pos.Y - (obstacle.pos.Y+10)) < 20 && Math.abs(player.pos.X - (obstacle.pos.X+10)) < 20
-                            @players[id].collisions += 0.035
+                @checkCollision(player, @obstacles)
+                @checkCollision(player, @players)
 
                 for collectible in @collectibles
                     if Math.abs(player.pos.Y - (collectible.pos.Y+10)) < 20 && Math.abs(player.pos.X - (collectible.pos.X+10)) < 20
-                      collectible.players.push id
+                        collectible.players.push id
 
-                wantposX = 50 - 10 * player.collisions
-                diff = wantposX - player.pos.X
-                dposX = diff/10
-                @players[id].pos.X = player.pos.X + dposX
-                @players[id].collisions -= 0.02 if @players[id].collisions > 0
+                @players[id].speed.X = @calculateSpeed(player.acceleration.X, player.speed.X)
+                @players[id].speed.Y = @calculateSpeed(player.acceleration.Y, player.speed.Y) * 1.05
+                @players[id].pos.X = @calculatePosition(player.speed.X, player.pos.X)
+                @players[id].pos.Y = @calculatePosition(player.speed.Y, player.pos.Y)
+
+                if (@isAtEdge(player.pos.X))
+                    @players[id].speed.X = 0
+                if (@isAtEdge(player.pos.Y))
+                    @players[id].speed.Y = 0
+
 
 
             @collectibles = @collectibles.filter (collectible) =>
@@ -95,49 +94,92 @@ program = {
 
             @moveObjects(@collectibles)
             @moveObjects(@obstacles)
+            @createNewCollectibles(@collectibles)
+            @createNewObstacles(@obstacles)
 
-            if Math.random() > 0.9 && @obstacles.length < @config.max_obstacles
-                index = Math.floor(@config.obstacles.length * Math.random())
-                item = @config.obstacles[index];
-
-                @obstacles.push {
-                    radius: item.radius,
-                    pos:
-                        Y: Math.random() * 100,
-                        X: 100,
-                    angle: Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle,
-                    speed: @randomizeFromTo( item.min_speed, item.max_speed ) / 100,
-                    index: index
-                }
-
-            if Math.random() > 0.995 && @collectibles.length < @config.max_collectibles
-                index = Math.floor(@config.collectibles.length * Math.random())
-
-                item = @config.collectibles[index];
-
-                @collectibles.push {
-                    radius: item.radius,
-                    pos:
-                        Y: Math.random() * 100,
-                        X: 100,
-                    angle: Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle,
-                    speed: @randomizeFromTo( item.min_speed, item.max_speed ) / 100,
-                    index: index
-                    players: []
-                }
         , 20
+
+
+    calculateSpeed: (acceleration, currentSpeed) ->
+
+        currentSpeed = (currentSpeed + acceleration/ 200) - (currentSpeed / 20)
+
+        if currentSpeed > 1
+            return 1
+        if currentSpeed < -1
+            return -1
+
+        return currentSpeed
+
+    calculatePosition: (speed, currentPosition) ->
+        newPosition =  currentPosition + speed;
+        if (newPosition > 95)
+            return 95
+        if (newPosition < 0)
+            return 0
+        return newPosition
+
+    isAtEdge: (currentPosition) ->
+        if ((currentPosition <= 0) || (currentPosition >= 95))
+            return true
+        return false
+
+
+    createNewObstacles: (obstacles)->
+        if Math.random() > 0.9 && obstacles.length < @config.max_obstacles
+            index = Math.floor(@config.obstacles.length * Math.random())
+            item = @config.obstacles[index];
+            speed = @randomizeFromTo( item.min_speed, item.max_speed ) / 100;
+            angle = Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle
+            obstacles.push {
+                radius: item.radius,
+                pos:
+                    Y: Math.random() * 100,
+                    X: 100
+                angle: angle
+                speed:
+                    X: Math.cos(angle) * speed
+                    Y: Math.sin(angle) * speed
+                index: index
+                width: item.width
+                height: item.height
+            }
+
+    createNewCollectibles: (collectibles)->
+        if Math.random() > 0.995 && collectibles.length < @config.max_collectibles
+            index = Math.floor(@config.collectibles.length * Math.random())
+            item = @config.collectibles[index];
+            speed = @randomizeFromTo( item.min_speed, item.max_speed ) / 100;
+            angle = Math.random() * (item.max_angle - item.min_angle + 1 )+ item.min_angle
+            collectibles.push {
+                radius: item.radius,
+                pos:
+                    Y: Math.random() * 100
+                    X: 100
+                angle: angle
+                speed:
+                    X: Math.cos(angle) * speed
+                    Y: Math.sin(angle) * speed
+                index: index
+                players: []
+                width: item.width
+                height: item.height
+            }
+
 
     moveObjects: (objects) ->
         for object, i in objects.slice(0)
-            if (object.pos.X + 25) < 0 || (object.pos.X > 110) || (object.pos.Y > 110) || (object.pos.Y < -10)  ##out of bounds?
+            if (object.pos.X ) < -10 || (object.pos.X > 100) || (object.pos.Y > 110) || (object.pos.Y < -10)  ##out of bounds?
                 objects.splice i, 1
             else
-                @checkCollision(object)
-                object.pos.X = object.pos.X - (Math.cos(object.angle) * object.speed)
-                object.pos.Y = object.pos.Y + (Math.sin(object.angle) * object.speed)
+                @checkCollision(object, @obstacles)
 
-    checkCollision: (currentObject) ->
-        for object, i in @obstacles
+                object.pos.X = object.pos.X - object.speed.X
+                object.pos.Y = object.pos.Y + object.speed.Y
+
+
+    checkCollision: (currentObject, objects) ->
+        for object, i in objects
             if (currentObject != object)
                 if (@circleCircleCollision(object, currentObject))
                     @calculateCollisionEffect(object, currentObject)
@@ -157,10 +199,13 @@ program = {
             frontObject = object2
             backObject = object1
 
-        frontObject.speed = frontObject.speed + backObject.speed * 0.5
-        frontObject.angle = frontObject.angle * -1
-        backObject.speed = backObject.speed * 0.5
-        backObject.angle = backObject.angle * -1
+        frontObject.speed.X += backObject.speed.X * 0.5
+        frontObject.speed.Y += backObject.speed.Y * 0.5
+
+        backObject.speed.X = backObject.speed.X * -0.5
+        backObject.speed.Y = backObject.speed.Y * -0.5
+
+
 
 
     randomizeFromTo: (from, to) ->
@@ -169,7 +214,7 @@ program = {
     sockets: ->
 
         io.sockets.on 'connection', (socket) =>
-            console.log 'connection ' + socket.id
+          #  console.log 'connection ' + socket.id
             intervals = []
             socket.on 'map', =>
                 socket.emit 'images', @players
@@ -186,9 +231,10 @@ program = {
                     socket.emit 'collectibles', @collectibles
                 , 20
 
-            socket.on 'pos.Y', (data) =>
+            socket.on 'acceleration', (acceleration) =>
                 if @players.hasOwnProperty socket.id
-                    @players[socket.id].wantpos.Y = data
+                    @players[socket.id].acceleration.Y = acceleration.y
+                    @players[socket.id].acceleration.X = acceleration.x
                     if @players[socket.id].pushPoints
                         @players[socket.id].pushPoints = false
                         socket.emit 'points', @players[socket.id].points
@@ -202,22 +248,23 @@ program = {
                 else
 
                     playerIndex = Math.floor(@config.players.length * Math.random())
-
                     @players[socket.id] = {
-                        wantpos:
-                            Y: data,
+                        acceleration:
+                            X: acceleration.x,
+                            Y: acceleration.y,
+                        speed:
                             X: 0,
+                            Y: 0,
                         pos:
-                            Y: data,
-                            X: 50,
+                            X: 30,
+                            Y: 50,
+                        radius: @config.players[playerIndex].radius
                         collisions: 0,
                         image:  @config.players[playerIndex].image,
                         points: 0,
                         pushPoints: false
                     }
                     console.log 'sending image'
-
-
                     console.log @players[socket.id].image
 
                     socket.emit 'image', @players[socket.id].image
